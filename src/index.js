@@ -1,11 +1,12 @@
 import { adjustAspectRatio } from './modules/utils';
 import * as Square from './modules/square';
 import * as Ship from './modules/ship';
+import * as Alien from './modules/alien';
 
 const gameObjects = [
   Ship,
   Square,
-
+  Alien,
 ];
 
 const state = {
@@ -14,7 +15,7 @@ const state = {
     [],
     [],
   ],
-  showMap: true,
+  showMap: false,
   done: false,
 };
 
@@ -28,7 +29,6 @@ const draw = (state) => {
   const {a, d, e, f} = state.ctx.getTransform();
   const xOffset = state.player.x + (state.player.w / 2) - (width / 2 / a);
   const yOffset = state.player.y + (state.player.h / 2) - (height / 2 / d);
-  debugger;
   
   state.ctx.clearRect(-5, -5, state.canvas.width + 5, state.canvas.height + 5);
   if (!(Math.abs(e - -xOffset * a) < margin && Math.abs(f - -yOffset * d) < margin )) {

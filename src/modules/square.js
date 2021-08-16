@@ -14,8 +14,8 @@ const moveTime = 800; // ms
 let elapsedTime = 0;
 
 const moveToTile = (tile, percent) => {
-  state.x = lerp(state.x, tile.x, easeIn(percent));
-  state.y = lerp(state.y, tile.y, easeIn(percent));
+  state.x = lerp(state.x, tile.x, percent);
+  state.y = lerp(state.y, tile.y, percent);
 };
 
 export const update = (dt, gameState) => {
@@ -24,7 +24,7 @@ export const update = (dt, gameState) => {
     const tile = gameState.tiles[formula];
     elapsedTime += dt;
     let percent = elapsedTime / moveTime;
-    percent = percent >= 1 ? 1 : percent;
+    percent = percent > .4 ? 1 : percent;
     moveToTile(tile, percent);
     if (percent === 1) {
       state.moving = false;
