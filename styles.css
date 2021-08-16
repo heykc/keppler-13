@@ -1,0 +1,17 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #333333;
+  text-align: center;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#game {
+  background: #000;
+  width: 90%;
+  display: block;
+  margin: 25px auto;
+}
