@@ -20,9 +20,3 @@ export const keyMap = {
   38: 'up',
   40: 'down'
 };
-
-export const lerp =  (start, end, t) => start + t * (end - start);
-
-export const easeIn = (t, e = 2) => t**e;
-
-// export const easeOut = ()

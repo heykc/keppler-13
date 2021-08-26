@@ -1,73 +1,118 @@
-import { keyMap, lerp } from './utils';
+import { easeIn } from "../utils/animation";
 
 const state = {
-  x: 0,
-  y: 0,
+  pos: { x: 0, y: 0 },
   r: 0,
   c: 0,
   w: 18,
   h: 18,
   waitTime: 3000, // ms
+  angle: null,
+  state: 'thinking',
+  action: null,
+  speed: .02,
+  runSpeed: .05,
+  multiplier: 1,
 };
 
 const tileOffset = 25 / 2 - state.w / 2
-let elapsedTime = 0;
-let movement;
 
-const moveToTile = (tile, percent, offset = {x: 0, y: 0}) => {
-  state.x = lerp(state.x, tile.x + offset.x, percent);
-  state.y = lerp(state.y, tile.y + offset.y, percent);
-};
+// const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
 
-const clamp = (num, min, max) => Math.min(Math.max(num, min), max);
+const didPassTile = (destination, prevPos) => {
+  const newDx = Math.abs(destination.x + tileOffset - state.pos.x);
+  const newDy = Math.abs(destination.y + tileOffset - state.pos.y)
+  const didPass = Math.abs(destination.x + tileOffset - state.pos.x) > prevPos.x
+    && Math.abs(destination.y + tileOffset - state.pos.y) > prevPos.y;
+  return [didPass, {x: newDx, y: newDy}]
+}
 
-const findNewTile = (tiles) => {
-  state.r = clamp(state.r + Math.floor(Math.random() * 5) - 2, 0, 9)
-  state.c = clamp(state.c + Math.floor(Math.random() * 5) - 2, 0, 2)
-  const formula = 10 * state.c + state.r;
-  debugger;
-  return tiles[formula];
-};
+const moveTowardTile = (destination) => {
+  const dx = destination.x + tileOffset - state.pos.x;
+  const dy = destination.y + tileOffset - state.pos.y;
+  state.angle = Math.atan2(dy, dx);
+  let prevPos = {x: Math.abs(dx), y: Math.abs(dy)};
 
-const createMove = (destinationTile) => {
-  let et = 0;
-  let mt = 4000;
+  state.action = function (dt) {
+    const [didPass, newPos] = didPassTile(destination, prevPos);
+    if (!didPass) {
+      prevPos = newPos;
+      this.pos.x += Math.cos(state.angle) * state.speed * state.multiplier * dt;
+      this.pos.y += Math.sin(state.angle) * state.speed * state.multiplier * dt;
+    } else {
+      state.state = 'thinking';
+      state.action = null;
+    }
+  }
+}
 
-  return (dt) => {
-    et += dt;
-    let t = et / mt;
+const runTowardTile = (destination) => {
+  const dx = destination.x + tileOffset - state.pos.x;
+  const dy = destination.y + tileOffset - state.pos.y;
+  state.angle = Math.atan2(dy, dx);
+  let prevPos = {x: Math.abs(dx), y: Math.abs(dy)};
 
-    t = t > .4 ? 1 : t;
-    moveToTile(destinationTile, t, {x: tileOffset, y: tileOffset});
-    if (t === 1) {
-      elapsedTime = 0;
-      state.isMoving = false;
+  state.action = function (dt) {
+    const [didPass, newPos] = didPassTile(destination, prevPos);
+    if (!didPass) {
+      prevPos = newPos;
+      this.pos.x += Math.cos(state.angle) * state.runSpeed * state.multiplier * dt;
+      this.pos.y += Math.sin(state.angle) * state.runSpeed * state.multiplier * dt;
+    } else {
+      state.state = 'thinking';
+      state.action = null;
+    }
+  }
+}
+
+const createThink = () => {
+  const timeToThink = (Math.floor(Math.random() * 3000) + 1000);
+  let elapsedTime = 0;
+
+  state.action = function (dt) {
+    elapsedTime += dt;
+    if (elapsedTime > timeToThink) { 
+      state.state = 'moving';
+      state.action = null;
     }
   }
 }
 
 export const update = (dt, gameState) => {
-  elapsedTime += dt;
-  if (elapsedTime > state.waitTime && !state.isMoving) {
-    movement = createMove(findNewTile(gameState.tiles));
-    state.isMoving = true;
+  if (gameState.debrisTile) {
+    runTowardTile(gameState.debrisTile)
+    state.multiplier += .8;
+    gameState.debrisTile = null;
+  }
+
+  if (!state.action) {
+    switch (state.state) {
+      case 'thinking':
+        return createThink(gameState);
+      case 'moving':
+        const randomTile = gameState.tiles[Math.floor(Math.random() * gameState.tiles.length)];
+        return moveTowardTile(randomTile);
+      default:
+       return createThink(gameState);
+    }
   }
   
-  if (state.isMoving) {
-    movement(dt);
-  }
+  state.action(dt);
 }
 
 export const draw = ({ ctx }) => {
   ctx.fillStyle = 'green';
-  ctx.fillRect(state.x, state.y, state.w, state.h);
+  ctx.fillRect(state.pos.x, state.pos.y, state.w, state.h);
 };
 
 export const init = (gameState) => {
   const startTile = gameState.tiles[Math.floor(Math.random() * gameState.tiles.length)]
   state.r = startTile.col;
   state.c = startTile.row;
-  moveToTile(startTile, 1, {x: tileOffset, y: tileOffset});
-
+  state.pos = {
+    x: startTile.x + tileOffset,
+    y: startTile.y + tileOffset,
+  };
+  
   gameState.drawBatches[2].push(draw);
 };
